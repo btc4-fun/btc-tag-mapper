@@ -36,7 +36,9 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Install pinned Android platform and tools
-        run: sdkmanager 'platforms;android-35' 'build-tools;34.0.0'
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
       - name: Test, lint and build
         run: |
           python3 -B tools/test_release_config.py
@@ -76,7 +78,9 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
       - name: Install pinned Android platform and tools
-        run: sdkmanager 'platforms;android-35' 'build-tools;34.0.0'
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
       - name: Restore key, build and verify signed APK
         env:
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
