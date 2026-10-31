@@ -1,0 +1,11 @@
+.gradle/
+**/build/
+local.properties
+*.apk
+*.jks
+*.keystore
+.env*
+dist/
+__pycache__/
+*.pyc
+core/tdd-runs.txt

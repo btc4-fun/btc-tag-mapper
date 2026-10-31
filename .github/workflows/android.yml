@@ -1,0 +1,127 @@
+name: Android Mapper
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      signed_release:
+        description: Build APK with the owner's stable signing key
+        type: boolean
+        default: false
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mapper-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: Install pinned Android platform and tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;34.0.0'
+      - name: Test, lint and build
+        run: |
+          python3 -B tools/test_release_config.py
+          ./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon --console=plain
+      - name: Upload debug APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: btc-tag-mapper-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mapper-reports-${{ github.sha }}
+          path: |
+            core/build/reports/
+            core/build/test-results/
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 7
+          if-no-files-found: warn
+
+  signed:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.signed_release
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+      - name: Install pinned Android platform and tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;34.0.0'
+      - name: Restore key, build and verify signed APK
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export ANDROID_RELEASE_KEYSTORE="$RUNNER_TEMP/mapper-release.jks"
+          trap 'rm -f "$ANDROID_RELEASE_KEYSTORE"' EXIT
+          for name in ANDROID_RELEASE_KEYSTORE_BASE64 ANDROID_RELEASE_STORE_PASSWORD ANDROID_RELEASE_KEY_ALIAS ANDROID_RELEASE_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              printf '::error::Required signing secret is missing: %s\n' "$name"
+              exit 1
+            fi
+          done
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_RELEASE_KEYSTORE"
+          test -s "$ANDROID_RELEASE_KEYSTORE"
+          ./gradlew :app:assembleRelease --no-daemon --console=plain
+          APK=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" > "$RUNNER_TEMP/mapper-package.txt"
+          python3 - "$RUNNER_TEMP/mapper-package.txt" <<'PY'
+          import pathlib, sys, zipfile
+          text = pathlib.Path(sys.argv[1]).read_text()
+          assert "name='com.saebm.btcnfcseller'" in text
+          assert 'application-debuggable' not in text
+          permissions = [line for line in text.splitlines() if line.startswith('uses-permission:')]
+          assert set(permissions) == {"uses-permission: name='android.permission.NFC'", "uses-permission: name='android.permission.CAMERA'"}
+          with zipfile.ZipFile('app/build/outputs/apk/release/app-release.apk') as apk:
+              assert apk.testzip() is None
+          PY
+          mkdir -p dist
+          cp "$APK" dist/btc-tag-mapper.apk
+          sha256sum dist/btc-tag-mapper.apk > dist/SHA256SUMS
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$APK" > dist/signing-certificate.txt
+      - name: Remove runner key on every outcome
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mapper-release.jks"
+      - name: Upload signed APK and verification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: btc-tag-mapper-signed-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

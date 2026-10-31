@@ -1,0 +1,8 @@
+<resources>
+    <item name="address_input" type="id" />
+    <item name="review_uid" type="id" />
+    <item name="review_address" type="id" />
+    <item name="detail_uid" type="id" />
+    <item name="detail_address" type="id" />
+    <item name="detail_timestamp" type="id" />
+</resources>

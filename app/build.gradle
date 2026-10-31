@@ -1,0 +1,42 @@
+plugins { id 'com.android.application' }
+def signingVariables = ['ANDROID_RELEASE_KEYSTORE', 'ANDROID_RELEASE_STORE_PASSWORD',
+                        'ANDROID_RELEASE_KEY_ALIAS', 'ANDROID_RELEASE_KEY_PASSWORD']
+def releaseValues = signingVariables.collectEntries { [(it): System.getenv(it)] }
+def signingReady = releaseValues.values().every { it != null && !it.isEmpty() }
+tasks.register('verifyReleaseSigning') {
+ doLast {
+  if (!signingReady || !file(releaseValues.ANDROID_RELEASE_KEYSTORE).isFile()) {
+   throw new GradleException('Release requires all four ANDROID_RELEASE signing environment variables and an existing keystore; no debug fallback.')
+  }
+ }
+}
+tasks.configureEach {
+ if (name == 'preReleaseBuild') dependsOn('verifyReleaseSigning')
+}
+android {
+ namespace 'com.saebm.btcnfcseller'
+ compileSdk 35
+ buildToolsVersion '34.0.0'
+ defaultConfig { applicationId 'com.saebm.btcnfcseller'; minSdk 26; targetSdk 35; versionCode 1; versionName '1.0'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ testOptions { unitTests.includeAndroidResources = true }
+ signingConfigs {
+  release {
+   if (signingReady) {
+    storeFile file(releaseValues.ANDROID_RELEASE_KEYSTORE)
+    storePassword releaseValues.ANDROID_RELEASE_STORE_PASSWORD
+    keyAlias releaseValues.ANDROID_RELEASE_KEY_ALIAS
+    keyPassword releaseValues.ANDROID_RELEASE_KEY_PASSWORD
+   }
+  }
+ }
+ buildTypes {
+  release { signingConfig signingConfigs.release }
+ }
+}
+dependencies {
+ implementation project(':core')
+ implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.13'
+}

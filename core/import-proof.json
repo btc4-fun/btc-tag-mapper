@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "validator_comparisons": 5946,
+  "exported_rows": 5001,
+  "part_rows": [
+    5000,
+    1
+  ],
+  "part_bytes": [
+    425024,
+    109
+  ],
+  "first_import": [
+    [
+      5000,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "replay_import": [
+    [
+      0,
+      5000
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "conflict_cases_rejected_atomically": 3,
+  "serial_and_all_metadata_preserved": true,
+  "captured_at_preserved_in_csv_not_persisted_by_reference": true,
+  "source_sha256": {
+    "core/src/main/java/com/saebm/btcnfcseller/core/BitcoinAddress.java": "977d01624e2687fc7a86b6f5386120c76cc7017d84f2769ad25d1e219491c317",
+    "core/src/main/java/com/saebm/btcnfcseller/core/Capture.java": "78746e5d90603d49b9d84368898489ef2ad525ab8bd1597284835d1818379ff3",
+    "core/src/main/java/com/saebm/btcnfcseller/core/CsvExporter.java": "70a4b7a69192020303dd457487ca877e2d0b10f8a6845c29437b5ef9c147e802",
+    "core/src/main/java/com/saebm/btcnfcseller/core/Uid.java": "20b44a3141e104f9c691acd53714cc3bb93148505029ef2b7d57f392fbd24d4c",
+    "core/src/proof/java/ExportProof.java": "9086bb5606cd79e3063f42a12b77fda8464614f2e76b9c489f7de2d45597a277"
+  },
+  "executed_class_sha256": {
+    "ExportProof.class": "54b18d59b2cd4772c78bb24a8f57a35a382fddcc34f970ad151065ffe7fdf7d7",
+    "com/saebm/btcnfcseller/core/BitcoinAddress.class": "f610d76793d68682ba7c2d15d3cebfd73b3f27b74e2f874d1e4ef99d600f36fb",
+    "com/saebm/btcnfcseller/core/Capture.class": "b5e0e12d6e0d4ca79d6f0ff70b4c6775132223ba763eb6d77d69247bd5ed8b81",
+    "com/saebm/btcnfcseller/core/CsvExporter$Part.class": "5b7a8620d10611704aa9558143df472fd733338b11b8bf0e97d4755ecc4ac641",
+    "com/saebm/btcnfcseller/core/CsvExporter.class": "09967ca12ffbec154668034f0e0473fa5853d5c5b3c4451e5610dcbcbae9140a",
+    "com/saebm/btcnfcseller/core/Uid.class": "196c6a26cdad9a6c33a15ca3f2deafb5fbad111c36afba10bb2422ea2b686026"
+  },
+  "reference_sha256": {
+    "address_validation.py": "ba2a5a631acbabdc5646df83ee1abf4d6e2f9104ad8b3835419c3e74eddf8eaa",
+    "btc_db.py": "d0bd597d80751d0dbb822f14ba81ef634724b769672830287a9a201d05549369",
+    "nfc_bindings.py": "8fbdfe56e68601a5182b68081c96c79170b0b274ed587cb4630359a06813c450"
+  },
+  "disposable_fixture_removed": true
+}
