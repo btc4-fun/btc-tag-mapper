@@ -16,6 +16,7 @@ CERT = '7c4ccefc998b2407b22c2a7a3bc97e9b5f9baca3089886a5e71dcfef85b0fa3b'
 BADGING = """package: name='com.saebm.btcnfcseller' versionCode='3' versionName='1.0.0' platformBuildVersionName='15'
 uses-permission: name='android.permission.NFC'
 uses-permission: name='android.permission.CAMERA'
+uses-permission: name='android.permission.INTERNET'
 uses-permission: name='com.saebm.btcnfcseller.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
 """
 SIGNER = 'Signer #1 certificate SHA-256 digest: ' + CERT + '\n'
@@ -45,7 +46,7 @@ class ArtifactPolicy(unittest.TestCase):
                 self.check(badging=badging)
 
     def test_permission_addition_or_omission_rejected(self):
-        for badging in [BADGING + "uses-permission: name='android.permission.INTERNET'\n",
+        for badging in [BADGING.replace("uses-permission: name='android.permission.INTERNET'\n", ""),
                         BADGING.replace("uses-permission: name='android.permission.CAMERA'\n", ''),
                         BADGING + "uses-permission-sdk-23: name='android.permission.READ_CONTACTS'\n"]:
             with self.subTest(badging=badging), self.assertRaises(ValueError):

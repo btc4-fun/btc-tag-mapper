@@ -5,6 +5,16 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 class ReleaseConfiguration(unittest.TestCase):
+    def test_optional_online_provisioning_version_and_permission(self):
+        import xml.etree.ElementTree as ET
+        build = (ROOT / 'app/build.gradle').read_text()
+        self.assertIn("versionCode 4", build)
+        self.assertIn("versionName '1.1.0'", build)
+        manifest = ET.parse(ROOT / 'app/src/main/AndroidManifest.xml')
+        internet = [x for x in manifest.findall('uses-permission') if x.get('{http://schemas.android.com/apk/res/android}name') == 'android.permission.INTERNET']
+        self.assertEqual(len(internet), 1)
+        self.assertNotEqual(internet[0].get('{http://schemas.android.com/tools}node'), 'remove')
+
     def test_release_requires_explicit_signing(self):
         build = (ROOT / 'app/build.gradle').read_text()
         for name in ['ANDROID_RELEASE_KEYSTORE', 'ANDROID_RELEASE_STORE_PASSWORD',
@@ -38,7 +48,7 @@ class ReleaseConfiguration(unittest.TestCase):
         self.assertIn('gh release create "$RELEASE_TAG"', workflow)
         self.assertIn('--verify-tag', workflow)
         self.assertIn('--draft=false --prerelease=false', workflow)
-        self.assertIn('--notes-file docs/releases/v1.0.0.fa.md', workflow)
+        self.assertIn('--notes-file "docs/releases/${RELEASE_TAG}.fa.md"', workflow)
         self.assertIn('gh release view', workflow)
         self.assertIn('gh release download', workflow)
         self.assertIn('(cd dist && sha256sum btc-tag-mapper.apk signing-certificate.txt > SHA256SUMS)', workflow)

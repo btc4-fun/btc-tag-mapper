@@ -10,6 +10,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.EditText;
 import com.saebm.btcnfcseller.core.Uid;
+import com.saebm.btcnfcseller.core.TagProvisioning;
+import com.saebm.btcnfcseller.core.AddressTransport;
 import android.app.AlertDialog;
 import com.saebm.btcnfcseller.core.BitcoinAddress;
 import android.Manifest;
@@ -27,6 +29,19 @@ import java.nio.file.Files;
 
 public class MainActivity extends Activity {
     private LinearLayout root;
+    private Button writeTag, lockTag, verifyLock;
+    private final TagProvisioning provisioning = new TagProvisioning();
+    private TextView provisionMapping, provisionStatus;
+    private AddressTransport lookup;
+    private final java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private boolean foreground;
+    private long writerTicket;
+    private long readerGeneration;
+    // Main-thread ownership includes queued work, before the core enters BUSY.
+    private boolean tagIoPending;
+    private boolean readerRefreshPending;
+    private AlertDialog provisionDialog;
+    private long retryAt;
     private TextView nfcStatus;
     private TextView uid;
     private EditText address;
@@ -46,7 +61,7 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         store = new CaptureStore(this);
-        if (state != null) pendingExport = state.getString("pendingExport");
+        if (state != null) { pendingExport = state.getString("pendingExport"); retryAt = state.getLong("retryAt", 0); }
         ScrollView scroll = new ScrollView(this);
         root = new LinearLayout(this);
         root.setTag("root");
@@ -81,6 +96,13 @@ public class MainActivity extends Activity {
         address.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
         if (state != null) address.setText(state.getString("address", ""));
         root.addView(address);
+        address.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (provisioning.state() != TagProvisioning.State.IDLE) cancelProvisioning();
+            }
+            public void afterTextChanged(android.text.Editable s) { }
+        });
         Button scan = new Button(this);
         scan.setTag("scan");
         scan.setText("اسکن کد آدرس عمومی");
@@ -96,6 +118,42 @@ public class MainActivity extends Activity {
         review.setOnClickListener(v -> review());
         root.addView(review);
         result = text("", "result");
+        writeTag = new Button(this);
+        writeTag.setTag("writeTag"); writeTag.setText("تأیید بازنویسی تگ"); writeTag.setEnabled(false);
+        root.addView(writeTag);
+        provisionMapping = text("", "provisionMapping");
+        provisionMapping.setTextDirection(View.TEXT_DIRECTION_LTR);
+        provisionMapping.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        provisionMapping.setTextIsSelectable(true);
+        provisionStatus = text("", "provisionStatus");
+        lockTag = new Button(this); lockTag.setTag("lockTag"); lockTag.setText("قفل دائمی همین تگ"); lockTag.setEnabled(false); root.addView(lockTag);
+        verifyLock = new Button(this); verifyLock.setTag("verifyLock"); verifyLock.setText("بررسی قفل با خواندن دوباره"); verifyLock.setEnabled(false); root.addView(verifyLock);
+        Button cancel = new Button(this); cancel.setTag("cancelProvisioning"); cancel.setText("لغو عملیات تگ"); root.addView(cancel);
+        cancel.setOnClickListener(v -> cancelProvisioning());
+        lockTag.setOnClickListener(v -> {
+            long consent = provisioning.generation();
+            provisionDialog = new AlertDialog.Builder(this).setTitle("قفل دائمی و برگشت‌ناپذیر")
+                .setMessage("فقط همین تگ و پیوند بررسی‌شده قفل می‌شود. پس از قفل، تغییر یا پاک‌کردن محتوا ممکن نیست. تگ را دور کنید؛ سپس تأیید کنید و دوباره نزدیک کنید.")
+                .setNegativeButton("انصراف", (d, w) -> cancelProvisioning())
+                .setPositiveButton("قفل دائمی را تأیید می‌کنم", (d, w) -> {
+                    if (!foreground || consent != provisioning.generation() || provisioning.state() != TagProvisioning.State.WRITTEN_UNLOCKED) return;
+                    writerTicket = provisioning.armLock(); renderProvisioning(); refreshNfc();
+                }).setOnCancelListener(d -> cancelProvisioning()).show();
+        });
+        verifyLock.setOnClickListener(v -> {
+            if (!foreground || provisioning.state() != TagProvisioning.State.LOCK_AWAITING_VERIFICATION) return;
+            writerTicket = provisioning.armVerify(); renderProvisioning(); refreshNfc();
+        });
+        writeTag.setOnClickListener(v -> {
+            long consent = provisioning.generation();
+            provisionDialog = new AlertDialog.Builder(this).setTitle("بازنویسی همین تگ")
+                .setMessage("محتوای قبلی تگ پاک می‌شود. شناسه، آدرس و سریال را با پاکت تطبیق دهید. فقط پیوند نمایش‌داده‌شده نوشته می‌شود؛ قفل خودکار نیست.")
+                .setNegativeButton("انصراف", (d, w) -> cancelProvisioning())
+                .setPositiveButton("تأیید بازنویسی", (d, w) -> {
+                    if (!foreground || consent != provisioning.generation() || provisioning.state() != TagProvisioning.State.REVIEW) return;
+                    writerTicket = provisioning.armWrite(); renderProvisioning(); refreshNfc();
+                }).setOnCancelListener(d -> cancelProvisioning()).show();
+        });
         text("روزها بر اساس زمان هماهنگ جهانی هستند. صدور فایل به معنی ورود اطلاعات به سرور نیست. برای حفظ نسخهٔ خروجی، همهٔ بخش‌های شماره‌دار را ذخیره کنید.", "exportWarning");
         Button history = new Button(this);
         history.setTag("history");
@@ -127,10 +185,125 @@ public class MainActivity extends Activity {
                 addLtr(details, capture.address, R.id.detail_address);
                 addLtr(details, capture.capturedAt, R.id.detail_timestamp);
                 new AlertDialog.Builder(this).setTitle("جزئیات رکورد ذخیره‌شده").setView(details)
+                    .setNeutralButton("دریافت سریال از سایت", (d, w) -> discloseLookup(capture))
                     .setPositiveButton("بازگشت", (d, w) -> showDay(day)).show();
             }).setPositiveButton("صدور فایل‌های این روز", (dialog, which) -> showParts(captures, day))
                 .setNegativeButton("بستن", null).show();
         } catch (RuntimeException e) { result.setText("خواندن رکوردها انجام نشد."); }
+    }
+
+    private void discloseLookup(Capture capture) {
+        cancelProvisioning();
+        provisionDialog = new AlertDialog.Builder(this).setTitle("ارسال اختیاری به سایت")
+            .setMessage("فقط آدرس عمومی ذخیره‌شده برای یافتن سریال به سایت فرستاده می‌شود. ثبت و خروجی همچنان آفلاین هستند.\n\nhttps://btc4.fun")
+            .setNegativeButton("انصراف", (d, w) -> cancelProvisioning())
+            .setPositiveButton("ارسال آدرس عمومی", (d, w) -> startLookup(capture))
+            .setOnCancelListener(d -> cancelProvisioning()).show();
+    }
+
+    private void startLookup(Capture capture) {
+        if (!foreground) return;
+        if (android.os.SystemClock.elapsedRealtime() < retryAt) {
+            provisionStatus.setText("زمان انتظار سایت هنوز تمام نشده است؛ درخواست ارسال نشد."); return;
+        }
+        cancelProvisioning();
+        long ticket = provisioning.beginLookup(capture.uid, capture.address);
+        AddressTransport request = new AddressTransport(); lookup = request;
+        renderProvisioning();
+        io.execute(() -> {
+            AddressTransport.Response response;
+            try { response = requestLookup(request, capture.address); }
+            catch (Exception e) { response = new AddressTransport.Response(503, "", null); }
+            AddressTransport.Response completed = response;
+            runOnUiThread(() -> lookupFinished(ticket, completed));
+        });
+    }
+
+    protected AddressTransport.Response requestLookup(AddressTransport request, String savedAddress) throws Exception {
+        return request.lookup(savedAddress);
+    }
+
+    void lookupFinished(long ticket, AddressTransport.Response response) {
+        if (!foreground) return;
+        if (response.status == 200) {
+            try {
+                java.util.Map<String, String> body = parseMapping(response.body);
+                if (!provisioning.completeLookup(ticket, body.get("address"), body.get("serial"), body.get("lookup_url"))) { renderProvisioning(); return; }
+            } catch (org.json.JSONException e) {
+                if (!provisioning.completeLookup(ticket, "", "", "")) { renderProvisioning(); return; }
+            }
+        } else {
+            if (!provisioning.failLookup(ticket)) return;
+            renderProvisioning();
+            if (response.status == 429) {
+                long seconds = 60;
+                try {
+                    Object value = new org.json.JSONObject(response.body).get("retry_after");
+                    if (!(value instanceof Integer) || (Integer)value < 1 || (Integer)value > 86400
+                        || !String.valueOf(value).equals(response.retryAfter)) throw new org.json.JSONException("Invalid delay");
+                    seconds = (Integer)value;
+                } catch (org.json.JSONException ignored) { }
+                retryAt = android.os.SystemClock.elapsedRealtime() + seconds * 1000;
+                provisionStatus.setText(String.format(java.util.Locale.ROOT,
+                    "تعداد درخواست‌ها زیاد است. دست‌کم این تعداد ثانیه صبر کنید؛ تلاش دوباره خودکار نیست.\n\n%d", seconds));
+                return;
+            }
+            provisionStatus.setText(response.status == 404 ? "این آدرس در سایت ثبت نشده است؛ نوشتن مجاز نیست."
+                : response.status == 400 ? "آدرس پذیرفته نشد؛ نوشتن مجاز نیست."
+                : response.status == 429 ? "تعداد درخواست‌ها زیاد است؛ بعداً با انتخاب خودتان تلاش کنید."
+                : "سایت در دسترس نیست یا پاسخ معتبر نیست؛ هیچ مجوز نوشتنی صادر نشد.");
+            return;
+        }
+        renderProvisioning();
+    }
+
+    private static java.util.Map<String, String> parseMapping(String json) throws org.json.JSONException {
+        java.util.Map<String, String> values = new java.util.HashMap<>();
+        try (android.util.JsonReader reader = new android.util.JsonReader(new java.io.StringReader(json))) {
+            reader.setLenient(false); reader.beginObject();
+            while (reader.hasNext()) {
+                String key = reader.nextName();
+                if ((!key.equals("address") && !key.equals("serial") && !key.equals("lookup_url"))
+                    || values.containsKey(key) || reader.peek() != android.util.JsonToken.STRING)
+                    throw new java.io.IOException("Invalid mapping");
+                values.put(key, reader.nextString());
+            }
+            reader.endObject();
+            if (values.size() != 3 || reader.peek() != android.util.JsonToken.END_DOCUMENT) throw new java.io.IOException("Invalid mapping");
+            return values;
+        } catch (java.io.IOException | IllegalStateException e) { throw new org.json.JSONException("Invalid mapping"); }
+    }
+
+    private void cancelProvisioning() {
+        invalidateProvisioning();
+        if (foreground) refreshNfc();
+    }
+
+    private void invalidateProvisioning() {
+        if (lookup != null) { lookup.cancel(); lookup = null; }
+        provisioning.cancel(); readerGeneration++;
+        if (provisionDialog != null) provisionDialog.dismiss();
+        if (writeTag != null && provisionMapping != null) renderProvisioning();
+    }
+
+    private void renderProvisioning() {
+        TagProvisioning.State state = provisioning.state();
+        writeTag.setEnabled(state == TagProvisioning.State.REVIEW);
+        lockTag.setEnabled(state == TagProvisioning.State.WRITTEN_UNLOCKED);
+        verifyLock.setEnabled(state == TagProvisioning.State.LOCK_AWAITING_VERIFICATION);
+        provisionMapping.setText(provisioning.url() == null ? "" : provisioning.uid() + "\n" + provisioning.address()
+            + "\n" + provisioning.serial() + "\n" + provisioning.url());
+        provisionStatus.setText(state == TagProvisioning.State.LOOKUP ? "در حال دریافت سریال؛ فقط یک درخواست."
+            : state == TagProvisioning.State.REVIEW ? "سریال را با پاکت تطبیق دهید؛ هنوز چیزی نوشته نشده است."
+            : state == TagProvisioning.State.WRITE_ARMED ? "همین تگ را دور کنید و دوباره نزدیک کنید تا پیوند نوشته شود."
+            : state == TagProvisioning.State.WRITTEN_UNLOCKED ? "پیوند نوشته و دوباره خوانده شد؛ تگ هنوز قفل نشده است."
+            : state == TagProvisioning.State.LOCK_ARMED ? "فقط همان تگ را دوباره نزدیک کنید؛ قفل دائمی در انتظار است."
+            : state == TagProvisioning.State.LOCK_AWAITING_VERIFICATION ? "فرمان قفل پذیرفته شد اما هنوز تأیید نشده است. تگ را دور کنید و دکمهٔ بررسی قفل را بزنید."
+            : state == TagProvisioning.State.VERIFY_ARMED ? "تگ را دوباره نزدیک کنید تا قفل بررسی شود."
+            : state == TagProvisioning.State.LOCKED_VERIFIED ? "پیوند و غیرقابل‌نوشتن بودن تگ با خواندن تازه تأیید شد."
+            : state == TagProvisioning.State.BUSY ? "عملیات تگ در حال اجراست؛ عملیات شروع‌شده قابل برگشت نیست."
+            : state == TagProvisioning.State.FAILED_UNKNOWN ? "عملیات ناموفق یا وضعیت تگ نامشخص است. عملیات شروع‌شده قابل برگشت نیست."
+            : "");
     }
 
     private void showParts(List<Capture> captures, String day) {
@@ -271,6 +444,7 @@ public class MainActivity extends Activity {
 
     @Override public void onResume() {
         super.onResume();
+        foreground = true;
         if (!observingNfc) {
             android.content.IntentFilter filter = new android.content.IntentFilter(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED);
             if (android.os.Build.VERSION.SDK_INT >= 33)
@@ -281,18 +455,61 @@ public class MainActivity extends Activity {
         refreshNfc();
     }
 
+    private boolean captureReaderAllowed() {
+        return provisioning.state() == TagProvisioning.State.IDLE || provisioning.state() == TagProvisioning.State.FAILED_UNKNOWN
+            || provisioning.state() == TagProvisioning.State.LOCKED_VERIFIED;
+    }
+
+    static int readerFlags(boolean writer) {
+        int flags = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_NFC_B;
+        return writer ? flags | NfcAdapter.FLAG_READER_NFC_F | NfcAdapter.FLAG_READER_NFC_V : flags | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
+    }
+
+    protected TagProvisioning.Port openTagPort(android.nfc.Tag tag) {
+        return new NdefPort(tag);
+    }
+
     private void refreshNfc() {
         adapter = NfcAdapter.getDefaultAdapter(this);
         nfcStatus.setText(adapter == null ? "این دستگاه سخت‌افزار خواندن تگ ندارد."
             : adapter.isEnabled() ? "تگ را نزدیک گوشی نگه دارید." : "خواندن تگ خاموش است؛ آن را در تنظیمات روشن کنید.");
-        if (adapter != null && adapter.isEnabled()) {
-            adapter.enableReaderMode(this, tag -> {
-                byte[] id = tag.getId();
-                runOnUiThread(() -> acceptTag(id));
-            }, NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_NFC_B
-                | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK, null);
-        } else if (adapter != null) {
+        boolean enabled = adapter != null && adapter.isEnabled();
+        if (!enabled) invalidateProvisioning();
+        if (!foreground) return;
+        if (tagIoPending) {
+            readerRefreshPending = true;
+            return;
+        }
+        if (enabled) {
+            long scan = ++readerGeneration;
+            TagProvisioning.State state = provisioning.state();
+            boolean writer = state == TagProvisioning.State.WRITE_ARMED || state == TagProvisioning.State.LOCK_ARMED || state == TagProvisioning.State.VERIFY_ARMED;
+            long ticket = writerTicket;
             adapter.disableReaderMode(this);
+            adapter.enableReaderMode(this, tag -> runOnUiThread(() -> {
+                if (!foreground || scan != readerGeneration) return;
+                if (!writer) { if (captureReaderAllowed()) acceptTag(tag.getId()); return; }
+                // Retire this callback before queuing I/O. No duplicate discovery can queue another write.
+                readerGeneration++;
+                tagIoPending = true;
+                io.execute(() -> {
+                    try { provisioning.discovered(ticket, openTagPort(tag)); }
+                    finally {
+                        runOnUiThread(() -> {
+                            tagIoPending = false;
+                            boolean refresh = readerRefreshPending;
+                            readerRefreshPending = false;
+                            if (foreground) {
+                                renderProvisioning();
+                                if (refresh) refreshNfc();
+                                else if (adapter != null) adapter.disableReaderMode(this);
+                            }
+                        });
+                    }
+                });
+            }), readerFlags(writer), null);
+        } else {
+            if (adapter != null) adapter.disableReaderMode(this);
         }
     }
 
@@ -308,6 +525,9 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        foreground = false;
+        cancelProvisioning();
+        if (provisionDialog != null) provisionDialog.dismiss();
         if (observingNfc) {
             unregisterReceiver(nfcChanges);
             observingNfc = false;
@@ -317,6 +537,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
+        state.putLong("retryAt", retryAt);
         state.putString("uid", uid.getText().toString());
         String draft = address.getText().toString();
         state.putString("address", BitcoinAddress.isValid(draft) ? draft : "");
@@ -325,6 +546,9 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        foreground = false;
+        cancelProvisioning(); io.shutdownNow();
+        if (provisionDialog != null) provisionDialog.dismiss();
         if (confirmation != null) confirmation.dismiss();
         store.close();
         super.onDestroy();

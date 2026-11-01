@@ -8,7 +8,7 @@ import zipfile
 
 EXPECTED_CERT = '7c4ccefc998b2407b22c2a7a3bc97e9b5f9baca3089886a5e71dcfef85b0fa3b'
 PACKAGE = 'com.saebm.btcnfcseller'
-PERMISSIONS = {'android.permission.NFC', 'android.permission.CAMERA',
+PERMISSIONS = {'android.permission.NFC', 'android.permission.CAMERA', 'android.permission.INTERNET',
                PACKAGE + '.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'}
 
 
