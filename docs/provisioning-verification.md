@@ -2,6 +2,21 @@
 
 ## Parent release gate
 
+Public v1.1.0 release verified after hosted tag workflow success:
+
+```text
+commit: 55477df9c52a056be18df690ecd9a80b3b77db96
+run: https://github.com/btc4-fun/btc-tag-mapper/actions/runs/41294242877
+asset: https://github.com/btc4-fun/btc-tag-mapper/releases/download/v1.1.0/btc-tag-mapper.apk
+bytes: 1796122
+SHA-256: 683bcd13c91dd9b6c078aef0866f5ed48a8a14153e8d67f78e704925503912fa
+Final release JUnit: 94 passed, zero failures/errors/skips
+```
+
+The parent downloaded all three public assets without login, checked relative
+checksums, then reran actual APK version/package/permissions/ZIP/certificate and
+scanner-runtime verification. Release is public, not draft or prerelease.
+
 After the cancellation/radio-off fixes, the parent reran the real signed release
 build with the existing shared key: Python 16 passed, core/app release unit tests
 passed, release lint passed, APK package/version/permissions/ZIP/certificate and
