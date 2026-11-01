@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private Button writeTag, lockTag, verifyLock;
     private final TagProvisioning provisioning = new TagProvisioning();
-    private TextView provisionMapping, provisionStatus;
+    private TextView provisionMapping, provisionStatus, provisionHelp;
     private AddressTransport lookup;
     private final java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
     private boolean foreground;
@@ -126,6 +126,7 @@ public class MainActivity extends Activity {
         provisionMapping.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         provisionMapping.setTextIsSelectable(true);
         provisionStatus = text("", "provisionStatus");
+        provisionHelp = text("", "provisionHelp");
         lockTag = new Button(this); lockTag.setTag("lockTag"); lockTag.setText("قفل دائمی همین تگ"); lockTag.setEnabled(false); root.addView(lockTag);
         verifyLock = new Button(this); verifyLock.setTag("verifyLock"); verifyLock.setText("بررسی قفل با خواندن دوباره"); verifyLock.setEnabled(false); root.addView(verifyLock);
         Button cancel = new Button(this); cancel.setTag("cancelProvisioning"); cancel.setText("لغو عملیات تگ"); root.addView(cancel);
@@ -160,6 +161,7 @@ public class MainActivity extends Activity {
         history.setText("فهرست روزانه و صدور فایل");
         history.setOnClickListener(v -> showDays());
         root.addView(history);
+        renderProvisioning();
     }
 
     private void showDays() {
@@ -291,6 +293,21 @@ public class MainActivity extends Activity {
         writeTag.setEnabled(state == TagProvisioning.State.REVIEW);
         lockTag.setEnabled(state == TagProvisioning.State.WRITTEN_UNLOCKED);
         verifyLock.setEnabled(state == TagProvisioning.State.LOCK_AWAITING_VERIFICATION);
+        String nextStep;
+        switch (state) {
+            case IDLE: nextStep = "ابتدا رکورد ذخیره‌شده را از فهرست روزانه باز کنید و دریافت سریال را تأیید کنید."; break;
+            case LOOKUP: nextStep = "منتظر پاسخ معتبر سایت بمانید؛ هنوز نوشتن و قفل مجاز نیست."; break;
+            case REVIEW: nextStep = "شناسه و پیوند را تطبیق دهید؛ سپس نوشتن را جداگانه تأیید کنید. قفل تا نوشتن و بازخوانی موفق غیرفعال است."; break;
+            case WRITE_ARMED: nextStep = "همان تگِ قالب‌بندی‌شده، قابل نوشتن و دارای فضای کافی را دوباره نزدیک کنید. قفل هنوز مجاز نیست."; break;
+            case WRITTEN_UNLOCKED: nextStep = "نوشتن و بازخوانی موفق بود. در صورت نیاز، قفل دائمی را جداگانه تأیید کنید. بررسی قفل تا اقدام قفل غیرفعال است."; break;
+            case LOCK_ARMED: nextStep = "قفل دائمی را تأیید کرده‌اید؛ همان تگ را دور و دوباره نزدیک کنید. بررسی قفل هنوز آماده نیست."; break;
+            case LOCK_AWAITING_VERIFICATION: nextStep = "فرمان قفل کافی نیست. تگ را دور کنید، بررسی قفل را بزنید و دوباره نزدیک کنید. این بررسی فقط می‌خواند."; break;
+            case VERIFY_ARMED: nextStep = "برای بررسی فقط‌خواندنی، همان تگ را دوباره نزدیک کنید. تگ یا محتوای نامنطبق تأیید نمی‌شود."; break;
+            case LOCKED_VERIFIED: nextStep = "این مسیر تمام شد؛ دکمه‌های نوشتن و قفل غیرفعال‌اند. قفل، اصالت یا موجودی را ثابت نمی‌کند."; break;
+            case BUSY: nextStep = "تا پایان عملیات دکمه‌ها غیرفعال‌اند. عملیات سخت‌افزاری شروع‌شده قابل برگشت نیست."; break;
+            default: nextStep = "وضعیت نامعلوم مجوز قفل یا تأیید نمی‌دهد. هیچ تلاش دوباره‌ای خودکار نیست؛ وضعیت واقعی تگ را با ابزار مناسب بررسی کنید.";
+        }
+        provisionHelp.setText(String.format(java.util.Locale.ROOT, "%s\n\n%s", nextStep, "قفل فقط پس از نوشتن موفق در همین نشست و بررسی قفل فقط پس از اقدام قفل فعال می‌شود. بررسی مستقل یا قفل تگ قبلی در این برنامه وجود ندارد. خروج، لغو یا رفتن به پس‌زمینه مجوز این نشست را از بین می‌برد."));
         provisionMapping.setText(provisioning.url() == null ? "" : provisioning.uid() + "\n" + provisioning.address()
             + "\n" + provisioning.serial() + "\n" + provisioning.url());
         provisionStatus.setText(state == TagProvisioning.State.LOOKUP ? "در حال دریافت سریال؛ فقط یک درخواست."

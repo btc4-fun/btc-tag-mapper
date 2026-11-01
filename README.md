@@ -42,13 +42,13 @@ btc-tag-mapper.apk
 
 ## نسخه و شناسه
 
-نسخهٔ جدید مسیر اختیاری دریافت سریال و نوشتن پیوند را اضافه می‌کند. کلید ثابت انتشار و قرارداد فایل خروجی تغییر نکرده‌اند. آزمون روی تگ و گوشی واقعی هنوز انجام نشده است.
+نسخهٔ جدید مسیر اختیاری دریافت سریال و نوشتن پیوند را دارد. اصلاح کنونی راهنمای مرحلهٔ بعد و علت غیرفعال‌بودن قفل و بررسی قفل را نشان می‌دهد؛ بررسی مستقل تگ قبلی اضافه نشده است. کلید ثابت انتشار و قرارداد فایل خروجی تغییر نکرده‌اند. آزمون روی تگ و گوشی واقعی هنوز انجام نشده است.
 
 ```text
 applicationId: com.saebm.btcnfcseller
-versionName: 1.1.0
-versionCode: 4
-planned tag: v1.1.0
+versionName: 1.1.1
+versionCode: 6
+release tag: v1.1.1
 ```
 
 ## ساخت برای توسعه‌دهنده
@@ -120,4 +120,4 @@ Maximum bytes per file, including header: 1048576
 
 [Provisioning](docs/provisioning.fa.md)
 
-[Release notes](docs/releases/v1.1.0.fa.md)
+[Release notes](docs/releases/v1.1.1.fa.md)

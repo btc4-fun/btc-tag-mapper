@@ -111,6 +111,42 @@ public class ProvisioningReaderTest {
         return tag;
     }
 
+    private void finishIo() throws Exception { executor().submit(()->{}).get(5,java.util.concurrent.TimeUnit.SECONDS);idle(); }
+    @Test public void completeConfirmedWriteLockFreshVerifyAndCancelSession() throws Exception {
+        MemoryTag tag=new MemoryTag() {
+            public boolean writable(){return locks==0;}
+        };
+        controller.get().tagPort=tag;
+        armWrite();
+        assertFalse(view("lockTag").isEnabled());assertFalse(view("verifyLock").isEnabled());
+        dispatch(3);finishIo();
+        assertEquals(TagProvisioning.State.WRITTEN_UNLOCKED,flow.state());
+        assertTrue(view("lockTag").isEnabled());assertFalse(view("verifyLock").isEnabled());
+        assertTrue(view("provisionHelp").getText().toString().contains("جداگانه"));
+        view("lockTag").performClick();
+        assertEquals(0,tag.locks);assertEquals(TagProvisioning.State.WRITTEN_UNLOCKED,flow.state());
+        ShadowAlertDialog.getLatestAlertDialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();idle();
+        NfcAdapter.ReaderCallback old=callback();
+        dispatch(3);finishIo();
+        assertEquals(1,tag.locks);assertEquals(TagProvisioning.State.LOCK_AWAITING_VERIFICATION,flow.state());
+        assertFalse(view("lockTag").isEnabled());assertTrue(view("verifyLock").isEnabled());
+        view("verifyLock").performClick();idle();
+        assertEquals(TagProvisioning.State.VERIFY_ARMED,flow.state());
+        Tag stale=(Tag)Tag.class.getMethod("createMockTag",byte[].class,int[].class,Bundle[].class).invoke(null,new byte[]{0,1,2,3},new int[0],new Bundle[0]);
+        old.onTagDiscovered(stale);finishIo();
+        assertEquals(TagProvisioning.State.VERIFY_ARMED,flow.state());
+        dispatch(3);finishIo();
+        assertEquals(TagProvisioning.State.LOCKED_VERIFIED,flow.state());assertEquals(1,tag.locks);
+        assertFalse(view("verifyLock").isEnabled());
+        view("cancelProvisioning").performClick();idle();controller.pause().resume();
+        assertCaptureOnly();assertThrows(IllegalStateException.class,flow::armLock);assertThrows(IllegalStateException.class,flow::armVerify);
+    }
+    @Test public void wrongContentBeforeLockNeverLocksOrVerifies() throws Exception {
+        MemoryTag tag=writtenMapping();tag.bytes=new byte[]{1};controller.get().tagPort=tag;
+        view("lockTag").performClick();ShadowAlertDialog.getLatestAlertDialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();idle();
+        dispatch(3);finishIo();assertEquals(0,tag.locks);assertEquals(TagProvisioning.State.FAILED_UNKNOWN,flow.state());
+        assertFalse(view("verifyLock").isEnabled());assertFalse(view("lockTag").isEnabled());
+    }
     @Test public void radioOffRevokesLockAuthorityAndOnOnlyCaptures() throws Exception {
         MemoryTag tag = writtenMapping();
         view("lockTag").performClick();

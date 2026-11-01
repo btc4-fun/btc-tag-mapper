@@ -63,6 +63,14 @@ public class ProvisioningUiTest {
         ((android.widget.EditText) activity.getWindow().getDecorView().findViewWithTag("address")).setText(ADDRESS);
         assertEquals("IDLE", flow.state().toString());
     }
+    @Test public void disabledControlsExplainSessionPrerequisites() {
+        MainActivity activity=Robolectric.buildActivity(MainActivity.class).setup().get();
+        TextView help=activity.getWindow().getDecorView().findViewWithTag("provisionHelp");
+        assertNotNull("Missing next-step and disabled-reason guidance",help);
+        assertTrue(help.getText().toString().contains("فهرست روزانه"));
+        assertTrue(help.getText().toString().contains("همین نشست"));
+        assertTrue(help.getText().toString().contains("بررسی مستقل"));
+    }
     @Test public void lockControlsAreSeparateAndWriterModeDoesNotSkipNdef() throws Exception {
         MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
         assertNotNull("Separate irreversible lock missing", activity.getWindow().getDecorView().findViewWithTag("lockTag"));
