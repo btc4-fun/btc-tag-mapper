@@ -1,22 +1,89 @@
-# GitHub builds and owner signing
+# ساخت و انتشار در گیت‌هاب
 
-Repository: https://github.com/btc4-fun/btc-tag-mapper
+مخزن فروشنده:
 
-Push/PR runs execute core tests, Android host tests, lint and a debug build. Debug APK and reports are retained seven days. They are not production-signed APKs.
+https://github.com/btc4-fun/btc-tag-mapper
 
-The owner authorized reading the existing local SMS signing backup. These four Actions secrets are now configured at organization level in `btc4-fun`, with selected access restricted to `btc-tag-mapper` and `btc-tag-checker`; metadata and both repository grants were read back and verified:
+ارسال به شاخهٔ اصلی، درخواست ادغام و ارسال برچسب نسخه، آزمون ابزارهای انتشار، آزمون هسته و رابط، بررسی کیفیت و ساخت آزمایشی را اجرا می‌کند. سپس حضور کلاس‌های لازم دوربین در خود فایل نصب بررسی می‌شود. فایل آزمایشی و گزارش‌ها هفت روز نگه داشته می‌شوند؛ امضای آزمایشی برای انتشار رسمی نیست.
 
-- ANDROID_RELEASE_KEYSTORE_BASE64
-- ANDROID_RELEASE_STORE_PASSWORD
-- ANDROID_RELEASE_KEY_ALIAS
-- ANDROID_RELEASE_KEY_PASSWORD
+## مسیر امضا و انتشار
 
-Settings: https://github.com/organizations/btc4-fun/settings/secrets/actions
+نام گردش‌کار:
 
-GitHub does not return stored secret values. Never print them in logs, commit them, upload the keystore as an artifact or generate a replacement key for each build.
+```text
+Android Mapper
+```
 
-Then manually run `Android Mapper` on `main` with `signed_release=true`. The signed job runs only after tests pass, restores the key into runner temporary storage, requires all four secrets, builds a non-debuggable release APK, verifies signature/package/permissions/archive and uploads APK, SHA256SUMS and public certificate fingerprints for fourteen days. Missing secrets fail closed. There is no public release or deployment step.
+دو مسیر مجاز برای ساخت با امضای مالک وجود دارد:
 
-Compare the resulting signing-certificate fingerprint with the existing SMS app's release certificate to prove key identity. The former local mapper debug APK has a different signing identity; do not uninstall a data-containing installation to bypass Android's update refusal without first preserving exports and explicitly accepting data loss.
+- اجرای دستی روی شاخهٔ اصلی با انتخاب گزینهٔ ساخت امضاشده، فقط خروجی قابل دریافت می‌سازد؛ انتشار عمومی انجام نمی‌دهد.
+- ارسال برچسب نسخه، بعد از موفقیت آزمون‌ها، فایل امضاشده را می‌سازد و نسخهٔ عمومی منتشر می‌کند.
 
-Customer repository: https://github.com/btc4-fun/btc-tag-checker — reserved for the separately developed customer app; creating the repository does not mean that code or CI has been migrated there.
+```text
+main
+signed_release: true
+v1.0.0
+```
+
+قبل از دسترسی به اسرار، شاخهٔ اصلی از مخزن دوردست دریافت می‌شود. بازبینیِ در حال ساخت باید در سابقهٔ این شاخه باشد. برچسب باید دقیقاً با نام نسخهٔ داخل تنظیمات برنامه برابر باشد و به همان بازبینیِ در حال ساخت اشاره کند. درخواست ادغام، شاخهٔ دیگر، برچسب ناسازگار و برچسب خارج از سابقهٔ اصلی نمی‌توانند از این مسیر امضا عبور کنند.
+
+نسخه از تنظیمات خود برنامه خوانده می‌شود:
+
+```text
+app/build.gradle
+```
+
+این کنترل‌ها جای حفاظت شاخه و برچسب در تنظیمات مخزن را نمی‌گیرند. افرادی که اجازهٔ تغییر خود گردش‌کار یا برچسب‌ها را دارند باید مورد اعتماد باشند.
+
+## کلید ثابت و اطلاعات محرمانه
+
+مالک برای این دو برنامه کلید ثابت جدید تعیین کرده است. چهار راز زیر برای مخزن تنظیم شده‌اند؛ مقدار آن‌ها نباید در گزارش، فایل خروجی یا مخزن قرار بگیرد. این راهنما نام‌ها و تصمیم مالک را ثبت می‌کند، نه نتیجهٔ بازخوانی مقادیر محرمانه.
+
+```text
+ANDROID_RELEASE_KEYSTORE_BASE64
+ANDROID_RELEASE_STORE_PASSWORD
+ANDROID_RELEASE_KEY_ALIAS
+ANDROID_RELEASE_KEY_PASSWORD
+```
+
+https://github.com/btc4-fun/btc-tag-mapper/settings/secrets/actions
+
+اثر انگشت عمومی و مورد انتظار گواهی:
+
+```text
+SHA-256
+7c4ccefc998b2407b22c2a7a3bc97e9b5f9baca3089886a5e71dcfef85b0fa3b
+```
+
+ساخت با نبود هر مقدار یا فایل کلید شکست می‌خورد. کلید در پوشهٔ موقت اجراگر و با مجوز محدود بازسازی می‌شود. پاک‌سازی هم در پایان مرحلهٔ امضا و هم در مرحلهٔ همیشه‌اجرا تعریف شده است. خاموشی سخت اجراگر ممکن است مانع اجرای پاک‌سازی نرم‌افزاری شود؛ ماندگاری کلید نباید به این اجراگر موقت وابسته باشد. اسرار فقط در مرحلهٔ امضا در دسترس‌اند.
+
+## کنترل‌های پیش از انتشار
+
+امضای واقعی فایل با ابزار رسمی اندروید بررسی می‌شود. سپس اثر انگشت گواهی، شناسهٔ بسته، نام و کد نسخه، غیرفعال‌بودن حالت اشکال‌زدایی، فهرست دقیق مجوزها و سلامت بایگانی بررسی می‌شوند. حضور کلاس‌های دوربین نیز جداگانه کنترل می‌شود. تنها پس از موفقیت همهٔ این کنترل‌ها، سه فایل مشخص منتشر می‌شوند:
+
+```text
+btc-tag-mapper.apk
+SHA256SUMS
+signing-certificate.txt
+```
+
+فایل بررسی سلامت فقط نام فایل‌های همان پوشه را دارد، نه مسیر داخلی اجراگر:
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+دسترسی نوشتن محتوا فقط به کار امضاشده داده می‌شود. انتشار از برچسب موجود، با توضیح ثابت فارسی، به‌صورت عمومی و نه پیش‌نویس یا پیش‌انتشار انجام می‌شود. فایل نصب آزمایشی و کلید خصوصی منتشر نمی‌شوند. بعد از انتشار، فراداده و سه فایل بازخوانی می‌شوند؛ هش و امضای فایل دانلودشده دوباره بررسی می‌شود.
+
+```text
+gh release create --verify-tag
+docs/releases/v1.0.0.fa.md
+```
+
+اگر نسخه با همان برچسب از قبل وجود داشته باشد، ایجاد نسخه شکست می‌خورد و فایل قبلی بی‌صدا جایگزین نمی‌شود. پیش از تلاش دوباره باید وضعیت موجود بازبینی شود. برای نسخهٔ آینده، علاوه بر تغییر نسخهٔ برنامه، توضیح فارسی و مسیر آن در گردش‌کار و آزمون‌ها را هم به‌روز کنید.
+
+## تفاوت کلید و حفظ داده
+
+کلید این انتشار با کلید قدیمی برنامهٔ پیامک و ساخت قبلی فروشنده یکی نیست. اندروید جایگزینی همان بسته با امضای متفاوت را رد می‌کند، حتی اگر کد نسخه افزایش یافته باشد. حذف برنامه داده‌های محلی را پاک می‌کند؛ بدون نگهداری خروجی همهٔ سوابق و پذیرش صریح از دست‌رفتن داده‌ها، حذف راه‌حل مجاز نیست. برنامه بازگردانی خودکار خروجی ندارد.
+
+گزارش محلی به‌تنهایی موفقیت اجرای گیت‌هاب یا انتشار عمومی را ثابت نمی‌کند. وضعیت اجرای منتشرشده و فایل دانلودشده باید جداگانه تأیید شوند.

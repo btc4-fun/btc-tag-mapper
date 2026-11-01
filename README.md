@@ -1,44 +1,121 @@
-# Offline Bitcoin NFC Seller
+# برنامهٔ فروشنده برای ثبت تگ بیت‌کوین
 
-Independent Android seller application. The envelope-maker repository is a read-only contract reference, never an application dependency. No server integration, authentication, balance lookup, production database access, tag writes, tag locking, record deletion or rebinding exists.
+این برنامه شناسهٔ تگ را به نشانی عمومی دریافت بیت‌کوین وصل می‌کند و نتیجه را روی گوشی نگه می‌دارد. برنامه آفلاین است؛ موجودی را نمی‌خواند، به سرور وصل نمی‌شود و چیزی روی تگ نمی‌نویسد. نشانی عمومی برای دریافت پول است؛ کلید خصوصی و واژه‌های بازیابی را وارد نکنید.
 
-## Build
+نام برنامه روی گوشی:
 
-Verified local toolchain:
+```text
+BTC Tag Mapper
+```
 
-- Java: `/usr/lib/jvm/java-17-amazon-corretto`
-- Android SDK: `/home/saeb/android-sdk`; platform 35 and build-tools 34.0.0
-- Gradle wrapper 8.9 (official wrapper JAR SHA-256 verified, distribution checksum pinned)
-- Android Gradle Plugin 8.7.0
-- Android 8.0/API 26 minimum; target API 35
-- Package `com.saebm.btcnfcseller`, version 1.0 / code 1
-- ZXing Embedded 4.3.0 and bundled ZXing core 3.4.1, no downloaded scanning model
-- JUnit 4.13.2 and Robolectric 4.13 (host JVM Android simulation, NOT an emulator/device)
+## دریافت و نصب
 
-Run from this directory:
+فایل نصب امضاشده پس از موفقیت گردش‌کار انتشار در صفحهٔ نسخه‌ها قرار می‌گیرد. وجود این راهنما به‌تنهایی به معنی انتشار موفق نیست:
 
-    export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
-    export ANDROID_HOME=/home/saeb/android-sdk
-    ./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+https://github.com/btc4-fun/btc-tag-mapper/releases
 
-`local.properties` is machine-local and ignored. When Google Maven responds with misleading 404s, use an approved proxy through invocation-specific Gradle JVM flags; do not add host proxy settings to source. A network-free app does not imply the initial build can resolve dependencies without internet.
+نام فایل نصب:
 
-## Use
+```text
+btc-tag-mapper.apk
+```
 
-The interface is Persian and RTL. Identifiers, public addresses and timestamps are isolated LTR values. Bring a supported tag near the foreground application; type/paste a canonical public address or scan its QR. Review the entire UID and address and explicitly confirm. A tag read alone does not save anything. Repeat mappings and conflicting mappings do not overwrite records. A UID is cloneable identification, not authenticity proof; it is distinct from the printed wallet serial.
+حداقل اندروید پشتیبانی‌شده، اندروید هشت است. گوشی برای خواندن تگ باید سخت‌افزار ارتباط نزدیک داشته باشد. اسکن بارکد هم به دوربین نیاز دارد؛ نشانی را می‌توان دستی وارد کرد.
 
-Daily history is grouped by UTC Gregorian date. Open a record to see full details, or select export for the day. Each numbered CSV part is saved separately via Android's document picker. Save ALL listed parts; successful export is not server import. App-private original records are retained. Uninstalling or clearing app data destroys those originals, so retain exports independently. Automatic cloud backup and device-transfer backup are excluded.
+اگر نصب روی نسخهٔ قبلی رد شد، برنامه را بی‌درنگ حذف نکنید. کلید انتشار جدید با کلید نسخه‌های قدیمی یا آزمایشی فرق دارد. حذف برنامه یا پاک‌کردن داده‌ها، سوابق محلی را از بین می‌برد. اول همهٔ بخش‌های خروجی را جداگانه نگه دارید. برنامه امکان بازگردانی خودکار این خروجی‌ها را ندارد.
 
-Only NFC and camera permissions are intended. No broad storage permission or INTERNET permission. Camera frames are decoded in memory; barcode-image saving is disabled. Only a raw canonical address QR is accepted; `bitcoin:` payment URIs, websites, mixed/uppercase addresses, preview addresses, private keys and recovery text are rejected. Invalid scanned content is not displayed or persisted. Manual invalid draft content is not saved in Android instance state.
+## روش استفاده
 
-## Wire contract
+- برنامه را باز کنید و تگ را نزدیک گوشی بگیرید.
+- نشانی عمومی را وارد کنید یا بارکد آن را اسکن کنید.
+- شناسهٔ کامل تگ و نشانی کامل را بررسی کنید و سپس ذخیره را تأیید کنید. خواندن تگ به‌تنهایی چیزی ذخیره نمی‌کند.
+- رکورد تکراری یا ناسازگار روی رکورد قبلی نوشته نمی‌شود. حذف رکورد و اتصال دوبارهٔ تگ به نشانی دیگر در برنامه وجود ندارد.
+- از فهرست روزانه خروجی بگیرید. اگر چند بخش نمایش داده شد، همه را ذخیره کنید. ذخیرهٔ خروجی به معنی ورود موفق آن به سامانهٔ دیگر نیست.
 
-UTF-8, no BOM; exact header/order:
+روزهای سابقه بر اساس تاریخ میلادی و ساعت جهانی گروه‌بندی می‌شوند. پشتیبان‌گیری خودکار ابری و انتقال خودکار دادهٔ برنامه غیرفعال است. شناسهٔ تگ با شمارهٔ چاپ‌شدهٔ کیف پول فرق دارد و چون قابل کپی است، اصالت کیف پول را ثابت نمی‌کند.
 
-    uid,address,captured_at
+## دوربین و حریم خصوصی
 
-UID is uppercase contiguous hex, 4/7/10 bytes in `Tag.getId()` order, retaining leading zeroes. Address is lowercase mainnet v0 P2WPKH, twenty-byte witness program, verified Bech32 checksum, excluding the two reference preview addresses. Capture time is generated when committing locally, UTC with seconds, and remains unchanged on export. Every file is at most 5000 rows and 1048576 bytes including the header. Filenames identify the UTC date and part number. Import requires pre-existing inventory addresses; it neither creates wallets nor replaces printed serials. The current owner importer validates but does not persist `captured_at`; retain CSVs as the capture audit trail.
+دوربین فقط بارکد یک نشانی عمومی معتبر را می‌پذیرد. پیوند وب، درخواست پرداخت، نشانی نمایشی، کلید خصوصی و متن بازیابی پذیرفته نمی‌شوند. تصویر دوربین ذخیره نمی‌شود و متن اسکن نامعتبر نیز نمایش یا ذخیره نمی‌شود.
 
-## Verification boundaries
+دسترسی اینترنت یا دسترسی گسترده به حافظه درخواست نمی‌شود. افزون بر مجوز دوربین و ارتباط نزدیک، کتابخانهٔ اندروید یک مجوز داخلی مخصوص همین برنامه برای گیرنده‌های امن اضافه می‌کند؛ این مجوز دسترسی تازه‌ای به داده‌های گوشی نمی‌دهد.
 
-Automated core, SQLite-backed Robolectric and UI tests are local evidence. They are not physical NFC/camera evidence. No ADB transports, mDNS debugging endpoints or installed emulator/system image were found during this run. Wireless ADB, physical tag reads, real camera decoding, OEM file-provider behavior and actual device force-stop/reboot remain unverified. The debug APK is for local evaluation, not a production signing/release claim. No commit, push or public release was authorized or performed.
+## نسخه و شناسه
+
+نام نسخه برای نخستین انتشار رسمی یکدست شده است. نام نمایشی نسخهٔ قبلیِ در حال آماده‌سازی کاهش یافته، اما کد داخلی افزایش یافته تا ترتیب نسخه‌ها در اندروید حفظ شود. این کار مشکل تفاوت کلید امضا را حل نمی‌کند.
+
+```text
+applicationId: com.saebm.btcnfcseller
+versionName: 1.0.0 (previous candidate: 1.0.1)
+versionCode: 3 (previous candidate: 2)
+tag: v1.0.0
+```
+
+## ساخت برای توسعه‌دهنده
+
+ساخت مستقل است و به مخزن برنامهٔ تولید پاکت وابسته نیست. وابستگی‌های ساخت اولیه به اینترنت نیاز دارند؛ آفلاین بودن خود برنامه به معنی ساخت اولیهٔ بدون شبکه نیست.
+
+ابزارهای فعلی:
+
+```text
+JDK 17
+Gradle wrapper 8.9
+Android Gradle Plugin 8.7.0
+compileSdk / targetSdk: 35
+minSdk: 26
+build-tools: 34.0.0
+ZXing Embedded: 4.3.0
+AndroidX Core: 1.13.1
+JUnit: 4.13.2
+Robolectric: 4.13
+```
+
+فرمان محلی از ریشهٔ مخزن؛ مسیرهای ابزار را برای دستگاه خود تنظیم کنید:
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
+export ANDROID_HOME=/home/saeb/android-sdk
+python3 -B -m unittest discover -s tools -p 'test_*.py' -v
+./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon --console=plain
+python3 -B tools/verify_scanner_runtime.py app/build/outputs/apk/debug/app-debug.apk
+```
+
+کلیدها و تنظیمات محلی ابزار توسعه نباید وارد مخزن شوند. ساخت انتشار بدون اطلاعات کامل کلید عمداً شکست می‌خورد؛ کلید آزمایشی جایگزین نمی‌شود.
+
+## قرارداد فایل خروجی
+
+رمزگذاری متن و سرستون دقیق:
+
+```text
+UTF-8, no BOM
+uid,address,captured_at
+```
+
+شناسهٔ تگ با حروف بزرگ شانزده‌شانزدهی، بدون فاصله و با حفظ صفرهای ابتدایی ذخیره می‌شود. ترتیب بایت‌ها همان ترتیب دریافتی اندروید است. نشانی باید مربوط به شبکهٔ اصلی، با حروف کوچک و جمع بررسی معتبر باشد؛ نشانی‌های نمایشی مرجع پذیرفته نیستند.
+
+```text
+UID length: 4 / 7 / 10 bytes
+Address: mainnet v0 P2WPKH, 20-byte witness program
+Maximum rows per file: 5000
+Maximum bytes per file, including header: 1048576
+```
+
+زمان ثبت هنگام ذخیرهٔ محلی تولید می‌شود و با گرفتن خروجی عوض نمی‌شود. ورود به سامانهٔ مالک به موجودبودن نشانی در موجودی قبلی نیاز دارد؛ کیف پول جدید نمی‌سازد و شمارهٔ چاپ‌شده را عوض نمی‌کند. واردکنندهٔ مرجع زمان ثبت را بررسی می‌کند ولی نگه نمی‌دارد؛ فایل‌های خروجی را برای سابقهٔ زمان ثبت حفظ کنید.
+
+## راهنما و حدود آزمون
+
+راهنمای انتشار و امضا:
+
+[Build and release](docs/github-builds.md)
+
+نتیجهٔ بررسی محلی و مواردی که هنوز روی گوشی واقعی آزموده نشده‌اند:
+
+[Verification](docs/verification.md)
+
+سابقهٔ اصلاح بسته‌شدن دوربین:
+
+[Scanner regression](docs/scanner-regression.md)
+
+توضیح نسخهٔ اول:
+
+[Release notes](docs/releases/v1.0.0.fa.md)
