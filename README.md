@@ -46,9 +46,9 @@ btc-tag-mapper.apk
 
 ```text
 applicationId: com.saebm.btcnfcseller
-versionName: 1.1.1
-versionCode: 6
-release tag: v1.1.1
+versionName: 1.1.2
+versionCode: 7
+release tag: v1.1.2
 ```
 
 ## ساخت برای توسعه‌دهنده
@@ -120,4 +120,4 @@ Maximum bytes per file, including header: 1048576
 
 [Provisioning](docs/provisioning.fa.md)
 
-[Release notes](docs/releases/v1.1.1.fa.md)
+[Release notes](docs/releases/v1.1.2.fa.md)

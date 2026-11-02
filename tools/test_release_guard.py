@@ -37,7 +37,7 @@ class TrustedSource(unittest.TestCase):
         return guard.validate_source(self.repo, event, ref)
 
     def test_optional_provisioning_version(self):
-        self.assertEqual(guard.read_version(ROOT), ('1.1.1', 6))
+        self.assertEqual(guard.read_version(ROOT), ('1.1.2', 7))
 
     def test_reachable_matching_tag_allowed(self):
         self.assertEqual(self.check(), 'v1.0.0')

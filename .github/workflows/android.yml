@@ -43,7 +43,7 @@ jobs:
       - name: Test, lint and build
         run: |
           python3 -B -m unittest discover -s tools -p 'test_*.py' -v
-          ./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon --console=plain
+          ./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --dependency-verification strict --no-daemon --console=plain
           python3 -B tools/verify_scanner_runtime.py app/build/outputs/apk/debug/app-debug.apk
       - name: Upload debug APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -113,7 +113,7 @@ jobs:
           done
           printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_RELEASE_KEYSTORE"
           test -s "$ANDROID_RELEASE_KEYSTORE"
-          ./gradlew :app:assembleRelease --no-daemon --console=plain
+          ./gradlew :core:test :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --dependency-verification strict --no-daemon --console=plain
           APK=app/build/outputs/apk/release/app-release.apk
           python3 -B tools/verify_scanner_runtime.py "$APK"
           mkdir -p dist

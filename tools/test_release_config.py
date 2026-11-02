@@ -5,11 +5,18 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 class ReleaseConfiguration(unittest.TestCase):
+    def test_release_suite_and_every_gradle_gate_are_strict(self):
+        workflow = (ROOT / '.github/workflows/android.yml').read_text()
+        self.assertIn(':core:test :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease', workflow)
+        for line in workflow.splitlines():
+            if './gradlew ' in line:
+                self.assertIn('--dependency-verification strict', line)
+
     def test_optional_online_provisioning_version_and_permission(self):
         import xml.etree.ElementTree as ET
         build = (ROOT / 'app/build.gradle').read_text()
-        self.assertIn("versionCode 6", build)
-        self.assertIn("versionName '1.1.1'", build)
+        self.assertIn("versionCode 7", build)
+        self.assertIn("versionName '1.1.2'", build)
         manifest = ET.parse(ROOT / 'app/src/main/AndroidManifest.xml')
         internet = [x for x in manifest.findall('uses-permission') if x.get('{http://schemas.android.com/apk/res/android}name') == 'android.permission.INTERNET']
         self.assertEqual(len(internet), 1)
