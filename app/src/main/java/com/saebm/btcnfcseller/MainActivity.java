@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 
 public class MainActivity extends Activity {
+    private static final String PUBLIC_WEBSITE = "https://btc.saeb.id.ir";
     private LinearLayout root;
     private Button writeTag, lockTag, verifyLock;
     private final TagProvisioning provisioning = new TagProvisioning();
@@ -197,7 +198,7 @@ public class MainActivity extends Activity {
     private void discloseLookup(Capture capture) {
         cancelProvisioning();
         provisionDialog = new AlertDialog.Builder(this).setTitle("ارسال اختیاری به سایت")
-            .setMessage("فقط آدرس عمومی ذخیره‌شده برای یافتن سریال به سایت فرستاده می‌شود. ثبت و خروجی همچنان آفلاین هستند.\n\nhttps://btc4.fun")
+            .setMessage("فقط آدرس عمومی ذخیره‌شده برای یافتن سریال به سایت فرستاده می‌شود. ثبت و خروجی همچنان آفلاین هستند.\n\n" + PUBLIC_WEBSITE)
             .setNegativeButton("انصراف", (d, w) -> cancelProvisioning())
             .setPositiveButton("ارسال آدرس عمومی", (d, w) -> startLookup(capture))
             .setOnCancelListener(d -> cancelProvisioning()).show();

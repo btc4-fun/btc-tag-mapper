@@ -190,8 +190,10 @@ public class ProvisioningUiTest {
         detail.getButton(AlertDialog.BUTTON_NEUTRAL).performClick();
         org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
         AlertDialog consent = ShadowAlertDialog.getLatestAlertDialog();
-        assertTrue(((TextView)consent.findViewById(android.R.id.message)).getText().toString().contains("آدرس عمومی"));
-        assertTrue(((TextView)consent.findViewById(android.R.id.message)).getText().toString().contains("https://btc4.fun"));
+        String consentText = ((TextView)consent.findViewById(android.R.id.message)).getText().toString();
+        assertTrue(consentText.contains("آدرس عمومی"));
+        assertTrue(consentText.contains("https://btc.saeb.id.ir"));
+        assertFalse("Public website migration must not rewrite the backend contract", consentText.contains("https://btc4.fun"));
         consent.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
         View arm = activity.getWindow().getDecorView().findViewWithTag("writeTag");
         assertNotNull(arm); assertFalse(arm.isEnabled());
