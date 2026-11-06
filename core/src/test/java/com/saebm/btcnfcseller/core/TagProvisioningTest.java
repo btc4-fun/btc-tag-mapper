@@ -113,6 +113,18 @@ public class TagProvisioningTest {
         long lookup = flow.beginLookup("00010203", ADDRESS); flow.cancel();
         assertFalse(flow.completeLookup(lookup, ADDRESS, "26b1z00001", "https://btc4.fun/s/26b1z00001"));
     }
+    @Test public void shortAndLegacySerialShapesAreBothAccepted() {
+        for (String serial : new String[]{"6a6dk0", "6a6dkz", "26b1z00001"}) {
+            TagProvisioning flow = new TagProvisioning();
+            long ticket = flow.beginLookup("00010203", ADDRESS);
+            assertTrue(serial, flow.completeLookup(ticket, ADDRESS, serial, "https://btc4.fun/s/" + serial));
+        }
+        for (String serial : new String[]{"6a6d", "6A6dk0"}) {
+            TagProvisioning flow = new TagProvisioning();
+            long ticket = flow.beginLookup("00010203", ADDRESS);
+            assertFalse(serial, flow.completeLookup(ticket, ADDRESS, serial, "https://btc4.fun/s/" + serial));
+        }
+    }
     @Test public void invalidServerMappingFailsClosed() {
         String[][] cases = {{"other", "26b1z00001", "https://btc4.fun/s/26b1z00001"},
             {ADDRESS, "../bad", "https://btc4.fun/s/../bad"},

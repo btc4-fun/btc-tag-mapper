@@ -102,7 +102,11 @@ public final class TagProvisioning {
         if (ticket != generation || state != State.LOOKUP) return false;
         // Exact backend SERIAL_PATTERN, not a claim of issuance.
         String pattern = "(?=[A-Za-z0-9][A-Za-z0-9_\\-]{0,63}$)[A-Za-z0-9_\\-]*"
-            + "[0-9]{2}[0-9ab][0-9a-u][0-9a-mz](?:[0-5][0-9][0-5][0-9]|[0-9a-zA-X]{2})[0-9a-z]+";
+            + "(?:"
+            + "[0-9]{2}[0-9ab][0-9a-u][0-9a-mz](?:[0-5][0-9][0-5][0-9]|[0-9a-zA-X]{2})[0-9a-z]+"
+            + "|"
+            + "[0-9a-z][0-9ab][0-9a-u][0-9a-mz][0-9a-z][0-9a-z]+"
+            + ")";
         if (!address.equals(returnedAddress) || returnedSerial == null || !returnedSerial.matches(pattern)
                 || !("https://btc4.fun/s/" + returnedSerial).equals(returnedUrl)) {
             state = State.FAILED_UNKNOWN;
