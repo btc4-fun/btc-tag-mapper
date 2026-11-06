@@ -60,9 +60,9 @@ sha256sum -c SHA256SUMS
 
 ```text
 applicationId: com.saebm.btcnfcseller
-versionName: 1.1.3
-versionCode: 8
-release tag: v1.1.3
+versionName: 1.1.4
+versionCode: 9
+release tag: v1.1.4
 ```
 
 ## ساخت برای توسعه‌دهنده
@@ -134,4 +134,4 @@ Maximum bytes per file, including header: 1048576
 
 [Provisioning](docs/provisioning.fa.md)
 
-[Release notes](docs/releases/v1.1.3.fa.md)
+[Release notes](docs/releases/v1.1.4.fa.md)

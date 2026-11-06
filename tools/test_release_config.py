@@ -15,8 +15,8 @@ class ReleaseConfiguration(unittest.TestCase):
     def test_optional_online_provisioning_version_and_permission(self):
         import xml.etree.ElementTree as ET
         build = (ROOT / 'app/build.gradle').read_text()
-        self.assertIn("versionCode 8", build)
-        self.assertIn("versionName '1.1.3'", build)
+        self.assertIn("versionCode 9", build)
+        self.assertIn("versionName '1.1.4'", build)
         manifest = ET.parse(ROOT / 'app/src/main/AndroidManifest.xml')
         internet = [x for x in manifest.findall('uses-permission') if x.get('{http://schemas.android.com/apk/res/android}name') == 'android.permission.INTERNET']
         self.assertEqual(len(internet), 1)
