@@ -1,3 +1,7 @@
+# Local BMAD installation; _bmad-output/ remains versionable
+/_bmad/
+/.agents/
+
 .gradle/
 **/build/
 local.properties

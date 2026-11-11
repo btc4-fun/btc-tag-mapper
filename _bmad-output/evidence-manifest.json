@@ -1,0 +1,226 @@
+{
+  "commit": "fdac017afeb3de1d874b5a5c40be4e0559b762a2",
+  "date": "2026-11-11",
+  "scope": "documentation only; source and synthetic tests; no device/network/production",
+  "actual_test": {
+    "framework": "JUnit 4.13.2",
+    "tests": 31,
+    "failures": 0,
+    "exit_code": 0,
+    "classes": [
+      "BitcoinAddressTest",
+      "CaptureTest",
+      "CsvExporterTest",
+      "TagProvisioningTest",
+      "UidTest"
+    ],
+    "compiled_in": "disposable scratch outside repository",
+    "cleaned": true
+  },
+  "relative_links": [
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../.agents/skills/bmad-help/SKILL.md",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../_bmad/_config/bmad-help.csv",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../.agents/skills/bmad-project-context/SKILL.md",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../settings.gradle",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/build.gradle",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/build.gradle",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/java/com/saebm/btcnfcseller/MainActivity.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/java/com/saebm/btcnfcseller/CaptureStore.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/main/java/com/saebm/btcnfcseller/core/Uid.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/test/java/com/saebm/btcnfcseller/core/UidTest.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/main/java/com/saebm/btcnfcseller/core/BitcoinAddress.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/java/com/saebm/btcnfcseller/PublicQr.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/main/java/com/saebm/btcnfcseller/core/CsvExporter.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/main/java/com/saebm/btcnfcseller/core/Capture.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/test/java/com/saebm/btcnfcseller/core/CsvExporterTest.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../tools/verify_import.py",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/main/java/com/saebm/btcnfcseller/core/AddressTransport.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/java/com/saebm/btcnfcseller/MainActivity.java#L229",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/main/java/com/saebm/btcnfcseller/core/TagProvisioning.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/java/com/saebm/btcnfcseller/NdefPort.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../core/src/test/java/com/saebm/btcnfcseller/core/TagProvisioningTest.java",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/AndroidManifest.xml",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../app/src/main/res/xml/data_extraction_rules.xml",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../README.md",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../.github/workflows/android.yml",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "../gradle/wrapper/gradle-wrapper.properties",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "verification.fa.md",
+      "status": "exists"
+    },
+    {
+      "document": "project-documentation.fa.md",
+      "target": "project-context.md",
+      "status": "exists"
+    },
+    {
+      "document": "project-context.md",
+      "target": "project-documentation.fa.md",
+      "status": "exists"
+    },
+    {
+      "document": "project-context.md",
+      "target": "../.github/workflows/android.yml",
+      "status": "exists"
+    },
+    {
+      "document": "project-context.md",
+      "target": "../core/run-tests.sh",
+      "status": "exists"
+    },
+    {
+      "document": "project-context.md",
+      "target": "verification.fa.md",
+      "status": "exists"
+    },
+    {
+      "document": "verification.fa.md",
+      "target": "project-documentation.fa.md",
+      "status": "exists"
+    },
+    {
+      "document": "verification.fa.md",
+      "target": "project-context.md",
+      "status": "exists"
+    }
+  ],
+  "mixed_persian_latin_lines": [],
+  "artifact_sha256": {
+    "project-documentation.fa.md": "f3c6793c3af4dcea3187d76e91f78b650097b5610107b709b3943214e6542406",
+    "project-context.md": "73257464ff8f32b47cd9a449852ddde9ab64a4f5a3765542b3f7149e90eef97e",
+    "verification.fa.md": "52e3e7f1afa13c19d523c798815ff5764a1974e25e8c6da57ba39d2ab036a467"
+  },
+  "public_source_sha256": {
+    ".agents/skills/bmad-help/SKILL.md": "72573fbbd205cab6119015b7a20951055c7f1f583162674ebed7a68368dc889c",
+    ".agents/skills/bmad-project-context/SKILL.md": "50b0ee0f4905273dd7f8a57a4e79b2ff47eabb074b6f4bce8242b950b37dfb63",
+    ".github/workflows/android.yml": "2b6f892a97f887fb40438a17ecdc89058db7b2bff5ea0be1b60c041761af7e9f",
+    "README.md": "37feb29ed6b9ec61969bbb1bc57cfa77de17502fb165f4567550e1b480427b07",
+    "_bmad/_config/bmad-help.csv": "fc9c206d394e72d18a051b0de6eb18e2f1b3abae8f585927496cbf8f7a8ac365",
+    "app/build.gradle": "29c02a94389b1c87659d2dbc5d7660b9b4f2b912e89d222c04b0a2c70ea08e2f",
+    "app/src/main/AndroidManifest.xml": "da2d8d5a472296d2ddafdf6db45a39507a6ae9200e89ec38f776bf62c5fe15a5",
+    "app/src/main/java/com/saebm/btcnfcseller/CaptureStore.java": "f39286dfb535d326af9a6503c9c5d9f5a1d48a900bcd88dd5310cb0cec39acf4",
+    "app/src/main/java/com/saebm/btcnfcseller/MainActivity.java": "0c0b8c896f9bb4402e2602e366c728baae766ef6fbc207260b50ae810e652156",
+    "app/src/main/java/com/saebm/btcnfcseller/NdefPort.java": "ebb4758b82b194e4f21b190701cd03474f72a40d186219b33462ca0b8ea245de",
+    "app/src/main/java/com/saebm/btcnfcseller/PublicQr.java": "d0bd72578394ad4ce1707b1a2dbb556643404ec333a4bb1e35a48a4b167efdde",
+    "app/src/main/res/xml/data_extraction_rules.xml": "76681200a2fac3066555074d51b6005c55f09a11bd2ec233f142848deafd6328",
+    "core/build.gradle": "2f58aafe9c77bbd66ce513db9fe9e645adb93b5bb23a9e6aa869d8b18c27819d",
+    "core/run-tests.sh": "1398860db00e3ab2fdb5880ddbf26c31b44fca72c541057531c0a43b18842b21",
+    "core/src/main/java/com/saebm/btcnfcseller/core/AddressTransport.java": "44a2abba7a6b526a08dda9d4b8ec594e88aaa43561343b92f2dfde7209b7230f",
+    "core/src/main/java/com/saebm/btcnfcseller/core/BitcoinAddress.java": "977d01624e2687fc7a86b6f5386120c76cc7017d84f2769ad25d1e219491c317",
+    "core/src/main/java/com/saebm/btcnfcseller/core/Capture.java": "78746e5d90603d49b9d84368898489ef2ad525ab8bd1597284835d1818379ff3",
+    "core/src/main/java/com/saebm/btcnfcseller/core/CsvExporter.java": "70a4b7a69192020303dd457487ca877e2d0b10f8a6845c29437b5ef9c147e802",
+    "core/src/main/java/com/saebm/btcnfcseller/core/TagProvisioning.java": "b9da0870d203ec24456a3e687d7bc227905ba98b2165156f72bc4ca87b430ecf",
+    "core/src/main/java/com/saebm/btcnfcseller/core/Uid.java": "20b44a3141e104f9c691acd53714cc3bb93148505029ef2b7d57f392fbd24d4c",
+    "core/src/test/java/com/saebm/btcnfcseller/core/CsvExporterTest.java": "700a147ac57314829e9ba292afcc433803647fdb31740c147f9628823b0d0dc3",
+    "core/src/test/java/com/saebm/btcnfcseller/core/TagProvisioningTest.java": "202a781da98624145ff8b7448ca929a607c4e8caafcf10ceff90cb7ed5da29a7",
+    "core/src/test/java/com/saebm/btcnfcseller/core/UidTest.java": "a68310f1c43bbadc39fa2d17d02cbe52842b7f06d90171a7dc7740b0355171d4",
+    "gradle/wrapper/gradle-wrapper.properties": "30afd54e153b434426f563154211a918513b05ae9adaa7006bc94c19c99844d1",
+    "settings.gradle": "c113395889f460a3ec4539662dcf6c4a37e8275f98c7dc20b61eced3be0136bc",
+    "tools/verify_import.py": "5f017a5c5af32b411fd6c89fb7f633e35eaf9e2a92f3debed094a4b492abe801"
+  }
+}
