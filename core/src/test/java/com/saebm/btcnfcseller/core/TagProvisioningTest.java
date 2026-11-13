@@ -160,6 +160,38 @@ public class TagProvisioningTest {
         flow.discovered(flow.armWrite(), tag); flow.cancel(); flow.cancel();
         assertEquals("FAILED_UNKNOWN", flow.state().toString());
     }
+    @Test public void failureReasonNamesTheExactFailingStep() {
+        // A tag that reports it cannot be made read-only must be distinguishable from a wrong tag.
+        TagProvisioning flow = reviewed();
+        TagPort written = new TagPort();
+        flow.discovered(flow.armWrite(), written);
+        assertEquals("WRITTEN_UNLOCKED", flow.state().toString());
+        assertEquals("NONE", flow.failure().toString());
+
+        TagPort notLockable = new TagPort();
+        notLockable.content = written.content;
+        notLockable.lockable = false;
+        flow.discovered(flow.armLock(), notLockable);
+        assertEquals("FAILED_UNKNOWN", flow.state().toString());
+        assertEquals("CANNOT_LOCK", flow.failure().toString());
+        assertEquals(0, notLockable.locks);
+    }
+
+    @Test public void wrongTagAndContentMismatchAreReportedSeparately() {
+        TagProvisioning wrong = reviewed();
+        TagPort other = new TagPort(); other.id = "00010204";
+        wrong.discovered(wrong.armWrite(), other);
+        assertEquals("WRONG_TAG", wrong.failure().toString());
+
+        TagProvisioning mismatch = reviewed();
+        TagPort written = new TagPort();
+        mismatch.discovered(mismatch.armWrite(), written);
+        TagPort stale = new TagPort();
+        stale.content = new byte[]{9};
+        mismatch.discovered(mismatch.armLock(), stale);
+        assertEquals("CONTENT_MISMATCH", mismatch.failure().toString());
+    }
+
     @Test public void provisioningStartsWithoutAnyWriteAuthority() throws Exception {
         Class<?> type;
         try { type = Class.forName("com.saebm.btcnfcseller.core.TagProvisioning"); }

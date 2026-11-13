@@ -60,9 +60,9 @@ sha256sum -c SHA256SUMS
 
 ```text
 applicationId: com.saebm.btcnfcseller
-versionName: 1.1.5
-versionCode: 10
-release tag: v1.1.5
+versionName: 1.1.6
+versionCode: 11
+release tag: v1.1.6
 ```
 
 ## ساخت برای توسعه‌دهنده
@@ -138,4 +138,4 @@ Maximum bytes per file, including header: 1048576
 
 [iPhone tag link](docs/iphone-tag-link.fa.md)
 
-[Release notes](docs/releases/v1.1.5.fa.md)
+[Release notes](docs/releases/v1.1.6.fa.md)

@@ -319,8 +319,25 @@ public class MainActivity extends Activity {
             : state == TagProvisioning.State.VERIFY_ARMED ? "تگ را دوباره نزدیک کنید تا قفل بررسی شود."
             : state == TagProvisioning.State.LOCKED_VERIFIED ? "پیوند و غیرقابل‌نوشتن بودن تگ با خواندن تازه تأیید شد."
             : state == TagProvisioning.State.BUSY ? "عملیات تگ در حال اجراست؛ عملیات شروع‌شده قابل برگشت نیست."
-            : state == TagProvisioning.State.FAILED_UNKNOWN ? "عملیات ناموفق یا وضعیت تگ نامشخص است. عملیات شروع‌شده قابل برگشت نیست."
+            : state == TagProvisioning.State.FAILED_UNKNOWN ? failureText(provisioning.failure())
             : "");
+    }
+
+    /** Names the exact failing step so the owner can tell a tag limit from a wrong tag. */
+    private static String failureText(TagProvisioning.Failure failure) {
+        String tail = "\n\nعملیات شروع‌شده قابل برگشت نیست. هیچ تلاش دوباره‌ای خودکار نیست.";
+        switch (failure) {
+            case WRONG_TAG: return "تگ نزدیک‌شده همان تگ تأییدشده نیست؛ شناسهٔ تگ نمی‌خواند." + tail;
+            case CONNECT: return "اتصال به تگ برقرار نشد؛ تگ را دور و دوباره نزدیک کنید." + tail;
+            case NOT_WRITABLE: return "تگ قابل نوشتن نیست؛ یا قبلاً قفل شده یا فقط‌خواندنی است." + tail;
+            case TOO_SMALL: return "ظرفیت تگ برای این پیوند کافی نیست." + tail;
+            case CANNOT_LOCK: return "این تگ قفل دائمی NDEF را پشتیبانی نمی‌کند. تگ را با ابزار دیگر بررسی کنید." + tail;
+            case CONTENT_MISMATCH: return "محتوای خوانده‌شده از تگ با پیوند تأییدشده یکسان نیست." + tail;
+            case LOCK_REJECTED: return "تگ فرمان قفل را نپذیرفت. قفل انجام نشده است." + tail;
+            case STILL_WRITABLE: return "تگ هنوز قابل نوشتن است؛ قفل تأیید نشد." + tail;
+            case IO: return "خطای ورودی/خروجی هنگام کار با تگ؛ وضعیت تگ نامشخص است." + tail;
+            default: return "عملیات ناموفق یا وضعیت تگ نامشخص است." + tail;
+        }
     }
 
     private void showParts(List<Capture> captures, String day) {

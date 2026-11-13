@@ -24,32 +24,40 @@ public final class TagProvisioning {
             expectedUrl = url;
         }
         try (Port tag = port) {
-            if (tag == null || !uid().equals(tag.uid())) throw new IllegalStateException("Wrong or unsupported tag");
-            tag.connect();
+            if (tag == null || !uid().equals(tag.uid())) fail(Failure.WRONG_TAG, "Wrong or unsupported tag");
+            try { tag.connect(); }
+            catch (Exception e) { fail(Failure.CONNECT, "Connect failed: " + e); }
             byte[] message = tag.message(expectedUrl);
             State completed;
             if (operation == State.WRITE_ARMED) {
-                if (!tag.writable() || tag.capacity() < message.length) throw new IllegalStateException("Not writable or too small");
+                if (!tag.writable()) fail(Failure.NOT_WRITABLE, "Tag is not writable");
+                if (tag.capacity() < message.length) fail(Failure.TOO_SMALL, "Tag too small");
                 tag.canLock();
                 if (!admitEffect(ticket)) return;
                 tag.write(message);
-                if (!java.util.Arrays.equals(message, tag.read())) throw new IllegalStateException("Readback mismatch");
+                if (!java.util.Arrays.equals(message, tag.read())) fail(Failure.CONTENT_MISMATCH, "Readback mismatch");
                 completed = State.WRITTEN_UNLOCKED;
             } else {
-                if (!java.util.Arrays.equals(message, tag.read())) throw new IllegalStateException("Fresh content mismatch");
+                if (!java.util.Arrays.equals(message, tag.read())) fail(Failure.CONTENT_MISMATCH, "Fresh content mismatch");
                 if (operation == State.LOCK_ARMED) {
-                    if (!tag.writable() || !tag.canLock()) throw new IllegalStateException("Cannot lock");
+                    if (!tag.writable()) fail(Failure.NOT_WRITABLE, "Tag is not writable");
+                    if (!tag.canLock()) fail(Failure.CANNOT_LOCK, "Tag reports it cannot be made read-only");
                     if (!admitEffect(ticket)) return;
-                    if (!tag.lock()) throw new IllegalStateException("Lock rejected");
+                    if (!tag.lock()) fail(Failure.LOCK_REJECTED, "Lock rejected by tag");
                     completed = State.LOCK_AWAITING_VERIFICATION;
                 } else {
-                    if (tag.writable()) throw new IllegalStateException("Still writable");
+                    if (tag.writable()) fail(Failure.STILL_WRITABLE, "Still writable");
                     completed = State.LOCKED_VERIFIED;
                 }
             }
-            synchronized (this) { if (ticket == generation) state = completed; }
+            synchronized (this) { if (ticket == generation) { state = completed; failure = Failure.NONE; } }
         } catch (Exception e) {
-            synchronized (this) { if (ticket == generation) state = State.FAILED_UNKNOWN; }
+            synchronized (this) {
+                if (ticket == generation) {
+                    state = State.FAILED_UNKNOWN;
+                    if (failure == Failure.NONE) failure = Failure.IO;
+                }
+            }
         }
     }
     // Linearization point: after admission the platform call is in flight, not undoable.
@@ -58,9 +66,21 @@ public final class TagProvisioning {
         boolean uncertain = state == State.FAILED_UNKNOWN || state == State.BUSY || state == State.WRITTEN_UNLOCKED || state == State.LOCK_ARMED || state == State.LOCK_AWAITING_VERIFICATION || state == State.VERIFY_ARMED;
         generation++;
         state = uncertain ? State.FAILED_UNKNOWN : State.IDLE;
+        if (!uncertain) failure = Failure.NONE;
         uid = address = serial = url = null;
     }
     public enum State { IDLE, LOOKUP, REVIEW, WRITE_ARMED, BUSY, WRITTEN_UNLOCKED, LOCK_ARMED, LOCK_AWAITING_VERIFICATION, VERIFY_ARMED, LOCKED_VERIFIED, FAILED_UNKNOWN }
+    /** Why the last tag operation failed; NONE until a failure is recorded. */
+    public enum Failure {
+        NONE, WRONG_TAG, CONNECT, NOT_WRITABLE, TOO_SMALL, CANNOT_LOCK, CONTENT_MISMATCH,
+        LOCK_REJECTED, STILL_WRITABLE, IO
+    }
+    private Failure failure = Failure.NONE;
+    public synchronized Failure failure() { return failure; }
+    private void fail(Failure reason, String detail) {
+        synchronized (this) { failure = reason; }
+        throw new IllegalStateException(detail);
+    }
     public synchronized long armWrite() {
         if (state != State.REVIEW) throw new IllegalStateException("Review required");
         state = State.WRITE_ARMED;
