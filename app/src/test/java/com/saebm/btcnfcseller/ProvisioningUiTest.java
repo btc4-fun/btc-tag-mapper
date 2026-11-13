@@ -81,6 +81,72 @@ public class ProvisioningUiTest {
         assertEquals(0, writer & android.nfc.NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK);
         assertTrue((writer & android.nfc.NfcAdapter.FLAG_READER_NFC_A) != 0);
     }
+
+    /**
+     * The browser-opening bug is not the flag: it is the disable/enable cycle. While reader mode is
+     * off, NfcService has no reader parameters, so a tag discovered in that window falls through to
+     * normal dispatch and the system browser wins. Reader mode must therefore be re-armed in place.
+     */
+    @Test public void readerModeIsNeverDisabledToChangeFlags() throws Exception {
+        java.nio.file.Path source = java.nio.file.Paths.get("src/main/java/com/saebm/btcnfcseller/MainActivity.java");
+        String code = new String(java.nio.file.Files.readAllBytes(source), java.nio.charset.StandardCharsets.UTF_8);
+        int refresh = code.indexOf("private void refreshNfc()");
+        int end = code.indexOf("private boolean isWriterState()", refresh);
+        assertTrue("refreshNfc must exist", refresh > 0 && end > refresh);
+        String body = code.substring(refresh, end);
+        // The only legitimate disable is the NFC-off branch. The enabled path must re-arm in place,
+        // because a disable/enable cycle leaves a window where the platform dispatches to the browser.
+        int enable = body.indexOf("enableReaderMode");
+        assertTrue("refreshNfc must re-arm reader mode in place", enable > 0);
+        int offBranch = body.indexOf("if (!enabled) {");
+        assertTrue("NFC-off branch must exist", offBranch > 0);
+        int offBranchEnd = body.indexOf("}", body.indexOf("return;", offBranch));
+        assertTrue("NFC-off branch must return early", offBranchEnd > offBranch);
+        String enabledPath = body.substring(offBranchEnd, enable);
+        assertFalse("the enabled path must not disable reader mode before re-arming it",
+            enabledPath.contains("disableReaderMode"));
+    }
+
+    /**
+     * Behavioural gate on the real NDEF transport: a tag whose stored message is exactly what the
+     * app writes must be accepted, and a tag carrying a different URL must be rejected. This drives
+     * TagProvisioning through NdefPort's real byte encoding instead of asserting on source text.
+     */
+    @Test public void realNdefBytesDecideWhetherTheTagIsAccepted() throws Exception {
+        String url = "https://btc4.fun/s/26b1z00001";
+        byte[] written = (byte[]) NdefPort.class.getDeclaredMethod("uriMessage", String.class).invoke(null, url);
+        com.saebm.btcnfcseller.core.TagProvisioning flow = new com.saebm.btcnfcseller.core.TagProvisioning();
+        long ticket = flow.beginLookup("00010203", ADDRESS);
+        assertTrue(flow.completeLookup(ticket, ADDRESS, "26b1z00001", url));
+        long writeTicket = flow.armWrite();
+        flow.discovered(writeTicket, new BytesPort("00010203", written, true));
+        assertEquals("WRITTEN_UNLOCKED", flow.state().toString());
+
+        // A different URL on the tag must never be accepted for lock.
+        byte[] other = (byte[]) NdefPort.class.getDeclaredMethod("uriMessage", String.class)
+            .invoke(null, "https://btc4.fun/s/26b1z00002");
+        long lockTicket = flow.armLock();
+        flow.discovered(lockTicket, new BytesPort("00010203", other, true));
+        assertEquals("FAILED_UNKNOWN", flow.state().toString());
+    }
+
+    /** Minimal Port over real NDEF bytes; no radio, no network. */
+    static final class BytesPort implements com.saebm.btcnfcseller.core.TagProvisioning.Port {
+        private final String id; private byte[] content; private boolean writable;
+        BytesPort(String id, byte[] content, boolean writable) { this.id = id; this.content = content; this.writable = writable; }
+        public String uid() { return id; }
+        public void connect() { }
+        public boolean writable() { return writable; }
+        public boolean canLock() { return true; }
+        public int capacity() { return 137; }
+        public byte[] message(String url) throws Exception {
+            return (byte[]) NdefPort.class.getDeclaredMethod("uriMessage", String.class).invoke(null, url);
+        }
+        public void write(byte[] message) { content = message; }
+        public byte[] read() { return content; }
+        public boolean lock() { writable = false; return true; }
+        public void close() { }
+    }
     @Test public void rateLimitShowsDelayAndBlocksExplicitEarlyLookup() throws Exception {
         MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
         java.lang.reflect.Field field = MainActivity.class.getDeclaredField("provisioning"); field.setAccessible(true);

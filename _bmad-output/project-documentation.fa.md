@@ -141,7 +141,7 @@ LOCK_AWAITING_VERIFICATION -> VERIFY_ARMED -> LOCKED_VERIFIED
 ```text
 JDK 17; Gradle wrapper 8.9; Android Gradle Plugin 8.7.0
 compileSdk=35; targetSdk=35; minSdk=26; build-tools=34.0.0
-applicationId=com.saebm.btcnfcseller; versionName=1.1.4; versionCode=9
+applicationId=com.saebm.btcnfcseller; versionName=1.1.5; versionCode=10
 ```
 
 فرمان های توسعه زیر از منبع و گردش کار استخراج شده اند و در این ماموریت اجرا نشده اند، چون خروجی ساخت موجود را تغییر می دهند. آماده بودن ابزار و وابستگی های محلی پیش نیاز است؛ ثبت آفلاین به معنی ساخت نخست بدون شبکه نیست. حالت آفلاین فقط در صورت وجود وابستگی های ذخیره شده قابل استفاده است.

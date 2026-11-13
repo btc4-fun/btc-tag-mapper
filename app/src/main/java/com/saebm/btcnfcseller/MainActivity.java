@@ -40,7 +40,6 @@ public class MainActivity extends Activity {
     private long readerGeneration;
     // Main-thread ownership includes queued work, before the core enters BUSY.
     private boolean tagIoPending;
-    private boolean readerRefreshPending;
     private AlertDialog provisionDialog;
     private long retryAt;
     private TextView nfcStatus;
@@ -478,6 +477,12 @@ public class MainActivity extends Activity {
             || provisioning.state() == TagProvisioning.State.LOCKED_VERIFIED;
     }
 
+    /**
+     * Writer mode deliberately does NOT set FLAG_READER_SKIP_NDEF_CHECK: the platform NDEF check
+     * populates the NDEF technology on the Tag, and Ndef.get(tag) returns null without it, which
+     * would break writing. The check does not open the browser while reader mode is active, because
+     * NfcService delivers the tag to the reader callback and returns before normal dispatch.
+     */
     static int readerFlags(boolean writer) {
         int flags = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_NFC_B;
         return writer ? flags | NfcAdapter.FLAG_READER_NFC_F | NfcAdapter.FLAG_READER_NFC_V : flags | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
@@ -494,41 +499,45 @@ public class MainActivity extends Activity {
         boolean enabled = adapter != null && adapter.isEnabled();
         if (!enabled) invalidateProvisioning();
         if (!foreground) return;
-        if (tagIoPending) {
-            readerRefreshPending = true;
+        // A queued or in-flight tag operation owns the live Tag; never re-route the controller under it.
+        if (tagIoPending) return;
+        if (!enabled) {
+            if (adapter != null) adapter.disableReaderMode(this);
             return;
         }
-        if (enabled) {
-            long scan = ++readerGeneration;
-            TagProvisioning.State state = provisioning.state();
-            boolean writer = state == TagProvisioning.State.WRITE_ARMED || state == TagProvisioning.State.LOCK_ARMED || state == TagProvisioning.State.VERIFY_ARMED;
+        // Reader mode stays enabled for the whole foreground session. Disabling it and enabling it
+        // again re-routes the controller through normal dispatch, and a tag present in that window
+        // is handed to the system browser instead of this callback. Re-enabling with new flags
+        // replaces the reader parameters atomically, so no such window exists.
+        long scan = ++readerGeneration;
+        adapter.enableReaderMode(this, tag -> onTagDiscovered(scan, tag), readerFlags(isWriterState()), null);
+    }
+
+    private boolean isWriterState() {
+        TagProvisioning.State state = provisioning.state();
+        return state == TagProvisioning.State.WRITE_ARMED || state == TagProvisioning.State.LOCK_ARMED
+            || state == TagProvisioning.State.VERIFY_ARMED;
+    }
+
+    private void onTagDiscovered(long scan, android.nfc.Tag tag) {
+        runOnUiThread(() -> {
+            if (!foreground || scan != readerGeneration) return;
+            if (!isWriterState()) { if (captureReaderAllowed()) acceptTag(tag.getId()); return; }
+            if (tagIoPending) return;
+            // Retire this callback before queuing I/O. No duplicate discovery can queue another write.
+            readerGeneration++;
+            tagIoPending = true;
             long ticket = writerTicket;
-            adapter.disableReaderMode(this);
-            adapter.enableReaderMode(this, tag -> runOnUiThread(() -> {
-                if (!foreground || scan != readerGeneration) return;
-                if (!writer) { if (captureReaderAllowed()) acceptTag(tag.getId()); return; }
-                // Retire this callback before queuing I/O. No duplicate discovery can queue another write.
-                readerGeneration++;
-                tagIoPending = true;
-                io.execute(() -> {
-                    try { provisioning.discovered(ticket, openTagPort(tag)); }
-                    finally {
-                        runOnUiThread(() -> {
-                            tagIoPending = false;
-                            boolean refresh = readerRefreshPending;
-                            readerRefreshPending = false;
-                            if (foreground) {
-                                renderProvisioning();
-                                if (refresh) refreshNfc();
-                                else if (adapter != null) adapter.disableReaderMode(this);
-                            }
-                        });
-                    }
-                });
-            }), readerFlags(writer), null);
-        } else {
-            if (adapter != null) adapter.disableReaderMode(this);
-        }
+            io.execute(() -> {
+                try { provisioning.discovered(ticket, openTagPort(tag)); }
+                finally {
+                    runOnUiThread(() -> {
+                        tagIoPending = false;
+                        if (foreground) { renderProvisioning(); refreshNfc(); }
+                    });
+                }
+            });
+        });
     }
 
     void acceptTag(byte[] bytes) {
